@@ -2,11 +2,13 @@
 --SQL Basics Part06
 
 --What is trigger
+--Different Types of Triggers DML,DDL, Logon
 --Insert Trigger
 --Delete Trigger
 --Update Trigger
 --Instead of Insert
 --Instead of Update
+--Instead of Delete
 
 --1. Triggers
 /*A trigger is a special kind of stored procedure that automatically executes when an event occurs in the database server.
@@ -198,5 +200,101 @@ Declare @DeptId int
  select * from vWEmployeeDetails
 
  --6. Insert of Update Trigger
-select * from vw
 
+select * from vWEmployeeDetails
+
+--Udate query affecting multiple tables
+Update vWEmployeeDetails set firstname = 'Derek', Departmentname = 'Finance' where Id = 18
+
+/*Msg 4405, Level 16, State 1, Line 203
+View or function 'vWEmployeeDetails' is not updatable because the modification affects multiple base tables.
+*/
+
+--Script to create INSTEAD OF UPDATE trigger:
+Create Trigger tr_vWEmployeeDetails_InsteadOfUpdate
+on vWEmployeeDetails
+instead of update
+as
+Begin
+ -- if EmployeeId is updated
+ if(Update(Id))
+ Begin
+  Raiserror('Id cannot be changed', 16, 1)
+  Return
+ End
+ 
+ -- If DeptName is updated
+ if(Update(departmentname)) 
+ Begin
+  Declare @DeptId int
+
+  Select @DeptId = tblDepartment.Id
+  from tblDepartment
+  join inserted
+  on inserted.departmentname = tblDepartment.DepartmentName
+  
+  if(@DeptId is NULL )
+  Begin
+   Raiserror('Invalid Department Name', 16, 1)
+   Return
+  End
+  
+  Update tblemployees set DepartmentId = @DeptId
+  from inserted
+  join tblemployees
+  on tblemployees.Id = inserted.id
+ End
+ 
+ -- If gender is updated
+ if(Update(Gender))
+ Begin
+  Update tblemployees set Gender = inserted.Gender
+  from inserted
+  join tblemployees
+  on tblemployees.Id = inserted.id
+ End
+ 
+ -- If Name is updated
+ if(Update(firstname))
+ Begin
+  Update tblemployees set firstname = inserted.firstname
+  from inserted
+  join tblemployees
+  on tblemployees.Id = inserted.id
+ End
+End
+
+--Now, let's try to update Valarie's Department to Finance. 
+Update vWEmployeeDetails 
+set departmentname = 'Finance'
+where Id = 20
+
+select * from vWEmployeeDetails
+select * from tblemployees
+select * from tblDepartment
+
+--Instead of Delete Trigger
+Delete from vWEmployeeDetails where Id = 20
+
+/*Msg 4405, Level 16, State 1, Line 277
+View or function 'vWEmployeeDetails' is not updatable because the modification affects multiple base tables.
+*/
+
+--Script to create INSTEAD OF DELETE trigger:
+Create Trigger tr_vWEmployeeDetails_InsteadOfDelete
+on vWEmployeeDetails
+instead of delete
+as
+Begin
+ Delete tblemployees
+ from tblemployees
+ join deleted
+ on tblemployees.Id = deleted.Id
+ 
+ --Subquery
+ --Delete from tblEmployee 
+ --where Id in (Select Id from deleted)
+End
+
+Delete from vWEmployeeDetails where Id = 20
+select * from tblemployees
