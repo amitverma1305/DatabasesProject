@@ -3,6 +3,7 @@
 --Date: 06/24/2020
 
 --Subqueries in SQL
+--Correalted Subqueries
 
 drop table tblProduct
 drop table tbl_ProductSales
@@ -31,6 +32,7 @@ Insert into tblProductSales values(2, 250, 7)
 Insert into tblProductSales values(3, 450, 4)
 Insert into tblProductSales values(3, 450, 9)
 
+--01. Subquery
 --Write a query to retrieve products that are not at all sold?
 Select [Id], [Name], [Description]
 from tblProducts
@@ -59,3 +61,22 @@ order by Name
 /*A subquery is simply a select statement, that returns a single value and can be nested inside a SELECT, UPDATE, INSERT, 
 or DELETE statement. 
 */
+
+--02. Correlated Subquery
+/*The sub query results are then used by the outer query. A non-corelated subquery can be executed independently of the 
+outer query.*/
+
+Select [Id], [Name], [Description]
+from tblProducts
+where Id not in (Select Distinct ProductId from tblProductSales)
+
+/*If the subquery depends on the outer query for its values, then that sub query is called as a correlated subquery. 
+In the where clause of the subquery below, "ProductId" column get it's value from tblProducts table that is present in the 
+outer query. So, here the subquery is dependent on the outer query for it's value, hence this subquery is a correlated 
+subquery. Correlated subqueries get executed, once for every row that is selected by the outer query. Corelated subquery, 
+cannot be executed independently of the outer query.*/
+
+Select [Name],
+(Select SUM(QuantitySold) from tblProductSales where ProductId = tblProducts.Id) as TotalQuantity
+from tblProducts
+order by Name
